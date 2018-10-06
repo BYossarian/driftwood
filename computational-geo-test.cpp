@@ -193,7 +193,16 @@ int main() {
 
     std::cout << "ALL GOOD... :)\n";
 
-    timer<std::chrono::microseconds> intersection_timer{};
+    timer<std::chrono::microseconds> test_timer{};
+
+    for (int j = 0; j < 1000; j++) {
+        for (int i = 0, l = convex_hull_tests.size(); i < l; i ++) {
+            make_convex_hull(convex_hull_tests[i].input_points);
+        }
+    }
+
+    std::cout << "convex hull time: " << test_timer.get_ticks() / 1000.0 << " ms\n";
+    test_timer.reset();
 
     for (int j = 0; j < 1000; j++) {
         for (int i = 0, l = intersection_tests.size(); i < l; i++) {
@@ -203,8 +212,8 @@ int main() {
         }
     }
 
-    std::cout << "sat time: " << intersection_timer.get_ticks() / 1000.0 << " ms\n";
-    intersection_timer.reset();
+    std::cout << "sat time: " << test_timer.get_ticks() / 1000.0 << " ms\n";
+    test_timer.reset();
 
     for (int j = 0; j < 1000; j++) {
         for (int i = 0, l = intersection_tests.size(); i < l; i++) {
@@ -214,6 +223,6 @@ int main() {
         }
     }
 
-    std::cout << "gjk time: " << intersection_timer.get_ticks() / 1000.0 << " ms\n";
+    std::cout << "gjk time: " << test_timer.get_ticks() / 1000.0 << " ms\n";
 
 }

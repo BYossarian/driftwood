@@ -8,6 +8,7 @@
 #include "./computational-geometry/convex-hull.h"
 #include "./computational-geometry/sat.h"
 #include "./computational-geometry/gjk.h"
+#include "./computational-geometry/epa.h"
 #include "./helpers/timer.h"
 
 struct convex_hull_test {
@@ -91,8 +92,13 @@ std::vector<intersection_test> intersection_tests = {
         { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } }, 
         true
     },
+    {   
+        { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } }, 
+        { { 0.5, 0 }, { 1.5, 0 }, { 0.5, 1 }, { 1.5, 1 } }, 
+        true
+    },
     {
-        { { 0, 0 }, { 1, 0 }, { 3.5, 0.9 }, { 0, 1 } },
+        { { 0, 0 }, { 1, 0 }, { 4, 0.5 }, { 1, 1 }, { 0, 1 } },
         { { 2, 0 }, { 3, 0 }, { 3, 1 }, { 2, 1 } },
         true
     },
@@ -157,6 +163,12 @@ bool are_equal_point_lists(const std::vector<vector_2d<T>> &points_a, const std:
 
 int main() {
 
+    // make sure all intersection_tests shapes are convex:
+    for (int i = 0, l = intersection_tests.size(); i < l; i++) {
+        make_convex_hull(intersection_tests[i].shape_a);
+        make_convex_hull(intersection_tests[i].shape_b);
+    }
+
     for (int i = 0, l = convex_hull_tests.size(); i < l; i ++) {
         std::vector<vector_2d<double>> points(convex_hull_tests[i].input_points);
         make_convex_hull(points);
@@ -168,11 +180,7 @@ int main() {
         }
     }
 
-    // make sure all intersection_tests shapes are convex:
-    for (int i = 0, l = intersection_tests.size(); i < l; i++) {
-        make_convex_hull(intersection_tests[i].shape_a);
-        make_convex_hull(intersection_tests[i].shape_b);
-    }
+    std::vector<vector_2d<double>> simplex(12);
 
     for (int i = 0, l = intersection_tests.size(); i < l; i++) {
         std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
@@ -183,7 +191,7 @@ int main() {
             std::cout << i << " SAT FAILED\n";
             throw;
         }
-        if (gjk_intersects(shape_a, shape_b) == intersection_tests[i].are_intersecting) {
+        if (gjk_intersects(shape_a, shape_b, simplex) == intersection_tests[i].are_intersecting) {
             std::cout << i << " GJK PASSED\n";
         } else {
             std::cout << i << " GJK FAILED\n";
@@ -221,10 +229,23 @@ int main() {
         for (int i = 0, l = intersection_tests.size(); i < l; i++) {
             std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
             std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
-            gjk_intersects(shape_a, shape_b);
+            gjk_intersects(shape_a, shape_b, simplex);
         }
     }
 
     std::cout << "gjk time: " << test_timer.get_ticks() / 1000.0 << " ms\n";
+    test_timer.reset();
+
+    for (int j = 0; j < 1000; j++) {
+        for (int i = 0, l = intersection_tests.size(); i < l; i++) {
+            std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
+            std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
+            if (gjk_intersects(shape_a, shape_b, simplex)) {
+                epa_get_penetration_vector(shape_a, shape_b, simplex);
+            }
+        }
+    }
+
+    std::cout << "gjk + epa time: " << test_timer.get_ticks() / 1000.0 << " ms\n";
 
 }

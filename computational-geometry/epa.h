@@ -14,7 +14,7 @@
 template <typename T>
 T calc_edge_to_origin_distance(const vector_2d<T> &point_a, const vector_2d<T> &point_b) {
 
-    vector_2d<T> normal = { point_a.y - point_b.y, point_b.x - point_a.x };
+    vector_2d<T> normal = { point_b.y - point_a.y, point_a.x - point_b.x };
     normal.normalise();
     
     return normal.dot(point_a);
@@ -22,11 +22,22 @@ T calc_edge_to_origin_distance(const vector_2d<T> &point_a, const vector_2d<T> &
 }
 
 // calculates the penetration vector for intersecting shapes using the Expanding Polytope Algorithm:
+// polytope should be a 2-simplex whose points lay on the boundary of convex_hull_a - convex_hull_b
 template <typename T>
 vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, std::vector<vector_2d<T>> polytope) {
 
     if (polytope.size() != 3) {
         throw;
+    }
+
+    // check for zero vectors in polytope
+    for (size_t i = 0; i < 3; i++) {
+        // if the origin is in the polytope, then the origin 
+        // is on the boundary of the Minkowski difference, so 
+        // the shapes are just touching...
+        if (polytope[i].is_zero()) {
+            return { 0, 0 };
+        }
     }
 
     T alignment = calc_alignment(polytope[0], polytope[1], polytope[2]);
@@ -49,7 +60,7 @@ vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_
     std::vector<T> edge_to_origin_dist(3);
 
     // calc edge_to_origin_dist for starting polytope:
-    for (int i = 0; i < 3; i++) {
+    for (size_t i = 0; i < 3; i++) {
 
         // because we know that the winding of polytope is 
         // ccw, this will return the +ve distance:
@@ -57,13 +68,15 @@ vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_
 
     }
 
-    while (true) {
-        
+    int loops = 10;
+
+    while (--loops) {
+
         // find smallest edge_to_origin_dist
         T smallest_dist = edge_to_origin_dist[0];
-        int smallest_dist_index = 0;
+        size_t smallest_dist_index = 0;
 
-        for (int i = 1, l = edge_to_origin_dist.size(); i < l; i++) {
+        for (size_t i = 1, l = edge_to_origin_dist.size(); i < l; i++) {
 
             if (edge_to_origin_dist[i] < smallest_dist) {
                 smallest_dist = edge_to_origin_dist[i];
@@ -75,25 +88,39 @@ vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_
         // expand the polytope by removing the edge closest to the origin 
         // and adding in a point:
         vector_2d<T> &point_a = polytope[smallest_dist_index];
-        vector_2d<T> &point_b = polytope[(smallest_dist_index + 1) % 3];
-        vector_2d<T> normal = { point_a.y - point_b.y, point_b.x - point_a.x };
-        vector_2d<T> new_point = convex_hull_support(convex_hull_a, direction) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * direction);
+        vector_2d<T> &point_b = polytope[(smallest_dist_index + 1) % polytope.size()];
+        vector_2d<T> orthogonal = { point_b.y - point_a.y, point_a.x - point_b.x };
+        vector_2d<T> new_point = convex_hull_support(convex_hull_a, orthogonal) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * orthogonal);
 
         // TODO: if insertion_index == 0 then we can actually, push the new elements to the end 
         // rather than inserting at the beginning...
-        int insertion_index = (smallest_dist_index + 1) % polytope.size();
+        size_t insertion_index = (smallest_dist_index + 1) % polytope.size();
+
+        if (polytope[insertion_index] == new_point) {
+            // new_point already exists in polytope => haven't expanded polytope 
+            orthogonal.normalise();
+            return smallest_dist * orthogonal;
+        }
+
         polytope.insert(polytope.begin() + insertion_index, new_point);
         edge_to_origin_dist.insert(edge_to_origin_dist.begin() + insertion_index, 
                 calc_edge_to_origin_distance(polytope[insertion_index], polytope[(insertion_index + 1) % polytope.size()]));
-        int precedes_insertion_index = (insertion_index == 0) ? polytope.size() - 1 : insertion_index - 1;
+        size_t precedes_insertion_index = (insertion_index == 0) ? polytope.size() - 1 : insertion_index - 1;
+        if (polytope[precedes_insertion_index] == new_point) {
+            // new_point already exists in polytope => haven't expanded polytope 
+            orthogonal.normalise();
+            return smallest_dist * orthogonal;
+        }
         edge_to_origin_dist[precedes_insertion_index] = 
                 calc_edge_to_origin_distance(polytope[precedes_insertion_index], polytope[insertion_index]);
 
         if (edge_to_origin_dist[insertion_index] <= smallest_dist && edge_to_origin_dist[precedes_insertion_index] <= smallest_dist) {
             // haven't actually extended the polytope => have hit the edge
-            normal.normalise();
-            return smallest_dist * normal;
+            orthogonal.normalise();
+            return smallest_dist * orthogonal;
         }
     }
+
+    throw;
 
 }

@@ -41,24 +41,11 @@ vector_2d<T> vector_triple_product(const vector_2d<T> &vector_a, const vector_2d
 
 }
 
-template <typename T>
-void print_points(const std::vector<vector_2d<T>> &points) {
-
-    for (int i = 0, l = points.size(); i < l; i++) {
-
-        std::cout << "(" << points[i].x << ", " << points[i].y << ") ";
-
-    }
-
-    std::cout << "\n";
-
-}
-
 // checks if the two convex_hulls overlap using the GJK algorithm
 template <typename T>
-bool gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, vector_2d<T> direction = { 1, 0 }) {
+bool gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, std::vector<vector_2d<T>> &simplex, vector_2d<T> direction = { 1, 0 }) {
 
-    std::vector<vector_2d<T>> simplex(3);
+    simplex.resize(3);
     simplex[0] = convex_hull_support(convex_hull_a, direction) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * direction);
     if (simplex[0].is_zero()) {
         // is our first point is the origin, then we're all good:
@@ -82,7 +69,7 @@ bool gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::v
     // now set the direction to be perpendicular to ab, pointing in 
     // the direction of the origin:
     direction = vector_triple_product(ab, ab, simplex[0]);
-    int cursor = 2;
+    size_t cursor = 2;
 
     while (true) {
 

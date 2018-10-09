@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cmath>
+#include <iostream>
 
 template <typename T>
 struct vector_2d {
@@ -39,4 +40,24 @@ inline vector_2d<T> operator-(const vector_2d<T>& vector_a, const vector_2d<T>& 
 template <typename T>
 inline bool operator==(const vector_2d<T>& vector_a, const vector_2d<T>& vector_b) {
     return vector_a.x == vector_b.x && vector_a.y == vector_b.y;
+}
+
+template <typename T>
+void print_point(const vector_2d<T> &point) {
+
+    std::cout << "(" << point.x << ", " << point.y << ") ";
+
+}
+
+template <typename T>
+void print_points(const std::vector<vector_2d<T>> &points) {
+
+    for (size_t i = 0, l = points.size(); i < l; i++) {
+
+        std::cout << "(" << points[i].x << ", " << points[i].y << ") ";
+
+    }
+
+    std::cout << "\n";
+
 }

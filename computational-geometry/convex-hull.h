@@ -64,12 +64,20 @@ void make_convex_hull(std::vector<vector_2d<T>> &points) {
 
         // TODO: atan2 is presumably a relatively expensive operation, so cache values:
         std::sort(points.begin() + 1, points.end(), [&points](vector_2d<T> a, vector_2d<T> b) {
-            return atan2(a.y - points[0].y, a.x - points[0].x) < atan2(b.y - points[0].y, b.x - points[0].x);
+            auto angle_a = atan2(a.y - points[0].y, a.x - points[0].x);
+            auto angle_b = atan2(b.y - points[0].y, b.x - points[0].x);
+            if (angle_a == angle_b) {
+                return a.x < b.x;
+            }
+            return angle_a < angle_b;
         });
 
     }
 
-    // 3) iterate over points and add them to the convex hull if appropriate.
+    // 3) remove duplicated points
+    points.erase( std::unique( points.begin(), points.end() ), points.end() );
+
+    // 4) iterate over points and add them to the convex hull if appropriate.
     // NB: we're doing this within points itself to avoid copying anything. top  
     // is the index of the current top of the 'stack' of points such that 
     // points[0 ... top] will always be a convex hull.
@@ -98,5 +106,9 @@ void make_convex_hull(std::vector<vector_2d<T>> &points) {
     // deallocate memory for points not in the convex hull:
     points.resize(top + 1);
     points.shrink_to_fit();
+
+    if (points.size() < 3) {
+        throw;
+    }
 
 }

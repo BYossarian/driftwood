@@ -15,7 +15,7 @@
 //      formed from p1-p2-p3 is more than 180 deg).
 // NB: it's just calculating the 2D cross-product (p2 - p1) X (p3 - p1):
 template <typename T>
-T calc_alignment(const vector_2D<T> &p1, const vector_2D<T> &p2, const vector_2D<T> &p3) {
+T calc_alignment(const vector_2d<T> &p1, const vector_2d<T> &p2, const vector_2d<T> &p3) {
 
     return (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
 
@@ -27,7 +27,7 @@ T calc_alignment(const vector_2D<T> &p1, const vector_2D<T> &p2, const vector_2D
 // in counter-clockwise order, starting from the point with the smallest y 
 // value. (in case of multiple such points, use one with smallest x as the tie-breaker)
 template <typename T>
-void make_convex_hull(std::vector<vector_2D<T>> &points) {
+void make_convex_hull(std::vector<vector_2d<T>> &points) {
 
     if (points.size() < 3) {
         throw;
@@ -63,7 +63,7 @@ void make_convex_hull(std::vector<vector_2D<T>> &points) {
     {
 
         // TODO: atan2 is presumably a relatively expensive operation, so cache values:
-        std::sort(points.begin() + 1, points.end(), [&points](vector_2D<T> a, vector_2D<T> b) {
+        std::sort(points.begin() + 1, points.end(), [&points](vector_2d<T> a, vector_2d<T> b) {
             return atan2(a.y - points[0].y, a.x - points[0].x) < atan2(b.y - points[0].y, b.x - points[0].x);
         });
 

@@ -11,7 +11,7 @@
 #include "./helpers/timer.h"
 
 struct convex_hull_test {
-    std::vector<vector_2D<double>> input_points, expected_result;
+    std::vector<vector_2d<double>> input_points, expected_result;
 };
 
 std::vector<convex_hull_test> convex_hull_tests = {
@@ -78,7 +78,7 @@ std::vector<convex_hull_test> convex_hull_tests = {
 };
 
 struct intersection_test {
-    std::vector<vector_2D<double>> shape_a, shape_b;
+    std::vector<vector_2d<double>> shape_a, shape_b;
     bool are_intersecting;
 };
 
@@ -139,7 +139,7 @@ std::vector<intersection_test> intersection_tests = {
 };
 
 template <typename T>
-bool are_equal_point_lists(const std::vector<vector_2D<T>> &points_a, const std::vector<vector_2D<T>> &points_b) {
+bool are_equal_point_lists(const std::vector<vector_2d<T>> &points_a, const std::vector<vector_2d<T>> &points_b) {
 
     if (points_a.size() != points_b.size()) {
         return false;
@@ -158,7 +158,7 @@ bool are_equal_point_lists(const std::vector<vector_2D<T>> &points_a, const std:
 int main() {
 
     for (int i = 0, l = convex_hull_tests.size(); i < l; i ++) {
-        std::vector<vector_2D<double>> points(convex_hull_tests[i].input_points);
+        std::vector<vector_2d<double>> points(convex_hull_tests[i].input_points);
         make_convex_hull(points);
         if (are_equal_point_lists(points, convex_hull_tests[i].expected_result)) {
             std::cout << i << " CONVEX HULL PASSED\n";
@@ -175,8 +175,8 @@ int main() {
     }
 
     for (int i = 0, l = intersection_tests.size(); i < l; i++) {
-        std::vector<vector_2D<double>> &shape_a = intersection_tests[i].shape_a;
-        std::vector<vector_2D<double>> &shape_b = intersection_tests[i].shape_b;
+        std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
+        std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
         if (sat_intersects(shape_a, shape_b) == intersection_tests[i].are_intersecting) {
             std::cout << i << " SAT PASSED\n";
         } else {
@@ -195,6 +195,8 @@ int main() {
 
     timer<std::chrono::microseconds> test_timer{};
 
+    // TODO: after the first loop, convex_hull_tests[i].input_points will all
+    // be convex hulls anyway
     for (int j = 0; j < 1000; j++) {
         for (int i = 0, l = convex_hull_tests.size(); i < l; i ++) {
             make_convex_hull(convex_hull_tests[i].input_points);
@@ -206,8 +208,8 @@ int main() {
 
     for (int j = 0; j < 1000; j++) {
         for (int i = 0, l = intersection_tests.size(); i < l; i++) {
-            std::vector<vector_2D<double>> &shape_a = intersection_tests[i].shape_a;
-            std::vector<vector_2D<double>> &shape_b = intersection_tests[i].shape_b;
+            std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
+            std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
             sat_intersects(shape_a, shape_b);
         }
     }
@@ -217,8 +219,8 @@ int main() {
 
     for (int j = 0; j < 1000; j++) {
         for (int i = 0, l = intersection_tests.size(); i < l; i++) {
-            std::vector<vector_2D<double>> &shape_a = intersection_tests[i].shape_a;
-            std::vector<vector_2D<double>> &shape_b = intersection_tests[i].shape_b;
+            std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
+            std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
             gjk_intersects(shape_a, shape_b);
         }
     }

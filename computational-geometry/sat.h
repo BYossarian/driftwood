@@ -11,7 +11,7 @@
 // determines if axis is a seperating axis for convex_hull_a and convex_hull_b by projecting each shape onto axis 
 // and seeing if they overlap:
 template <typename T>
-bool is_seperating_axis(const std::vector<vector_2D<T>> &convex_hull_a, const std::vector<vector_2D<T>> &convex_hull_b, const vector_2D<T> &axis) {
+bool is_seperating_axis(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, const vector_2d<T> &axis) {
 
     // NB: axis doesn't need normalising since that would just multiple the projections by a constant factor (|axis|)
     // and thus doesn't affect whether or not the projections of convex_hull_a and convex_hull_b overlap.
@@ -45,7 +45,7 @@ bool is_seperating_axis(const std::vector<vector_2D<T>> &convex_hull_a, const st
 // NB: assumes that the points in convex_hull_a and convex_hull_b are ordered (i.e. that they list the 
 // vertices in clockwise or counter-clockwise order)
 template <typename T>
-bool sat_intersects(const std::vector<vector_2D<T>> &convex_hull_a, const std::vector<vector_2D<T>> &convex_hull_b) {
+bool sat_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b) {
 
     // TODO: currently, if there are any parrallel sides between the two convex hulls, then 
     // we'll check that axis multiple times. can this be avoided cheaply?
@@ -56,8 +56,8 @@ bool sat_intersects(const std::vector<vector_2D<T>> &convex_hull_a, const std::v
 
     // checks the axises perpendicular to the sides of convex_hull_a:
     for (size_t i = 0, l = convex_hull_a.size(); i < l; i++) {
-        const vector_2D<T> &point_a = convex_hull_a[i];
-        const vector_2D<T> &point_b = convex_hull_a[(i + 1) % l];
+        const vector_2d<T> &point_a = convex_hull_a[i];
+        const vector_2d<T> &point_b = convex_hull_a[(i + 1) % l];
         if (is_seperating_axis(convex_hull_a, convex_hull_b, { point_a.y - point_b.y, point_b.x - point_a.x })) {
             return false;
         }
@@ -65,8 +65,8 @@ bool sat_intersects(const std::vector<vector_2D<T>> &convex_hull_a, const std::v
 
     // checks the axises perpendicular to the sides of convex_hull_b:
     for (size_t i = 0, l = convex_hull_b.size(); i < l; i++) {
-        const vector_2D<T> &point_a = convex_hull_b[i];
-        const vector_2D<T> &point_b = convex_hull_b[(i + 1) % l];
+        const vector_2d<T> &point_a = convex_hull_b[i];
+        const vector_2d<T> &point_b = convex_hull_b[(i + 1) % l];
         if (is_seperating_axis(convex_hull_a, convex_hull_b, { point_a.y - point_b.y, point_b.x - point_a.x })) {
             return false;
         }

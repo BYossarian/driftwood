@@ -11,7 +11,7 @@
 
 // support function for a convex hull:
 template <typename T>
-vector_2D<T> convex_hull_support(const std::vector<vector_2D<T>> &convex_hull, const vector_2D<T> &direction) {
+vector_2d<T> convex_hull_support(const std::vector<vector_2d<T>> &convex_hull, const vector_2d<T> &direction) {
 
     T point_projection_max = direction.dot(convex_hull[0]);
     size_t support_index = 0;
@@ -29,7 +29,7 @@ vector_2D<T> convex_hull_support(const std::vector<vector_2D<T>> &convex_hull, c
 
 // 2D vector triple product  a x (b x c) = b(a.c) - c(a.b)
 template <typename T>
-vector_2D<T> vector_triple_product(const vector_2D<T> &vector_a, const vector_2D<T> &vector_b, const vector_2D<T> &vector_c) {
+vector_2d<T> vector_triple_product(const vector_2d<T> &vector_a, const vector_2d<T> &vector_b, const vector_2d<T> &vector_c) {
 
     T a_dot_c = vector_a.dot(vector_c);
     T a_dot_b = vector_a.dot(vector_b);
@@ -42,7 +42,7 @@ vector_2D<T> vector_triple_product(const vector_2D<T> &vector_a, const vector_2D
 }
 
 template <typename T>
-void print_points(const std::vector<vector_2D<T>> &points) {
+void print_points(const std::vector<vector_2d<T>> &points) {
 
     for (int i = 0, l = points.size(); i < l; i++) {
 
@@ -56,9 +56,9 @@ void print_points(const std::vector<vector_2D<T>> &points) {
 
 // checks if the two convex_hulls overlap using the GJK algorithm
 template <typename T>
-bool gjk_intersects(const std::vector<vector_2D<T>> &convex_hull_a, const std::vector<vector_2D<T>> &convex_hull_b, vector_2D<T> direction = { 1, 0 }) {
+bool gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, vector_2d<T> direction = { 1, 0 }) {
 
-    std::vector<vector_2D<T>> simplex(3);
+    std::vector<vector_2d<T>> simplex(3);
     simplex[0] = convex_hull_support(convex_hull_a, direction) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * direction);
     if (simplex[0].is_zero()) {
         // is our first point is the origin, then we're all good:
@@ -78,7 +78,7 @@ bool gjk_intersects(const std::vector<vector_2D<T>> &convex_hull_a, const std::v
     if (direction.dot(simplex[1]) < 0) {
         return false;
     }
-    const vector_2D<T> ab = simplex[1] - simplex[0];
+    const vector_2d<T> ab = simplex[1] - simplex[0];
     // now set the direction to be perpendicular to ab, pointing in 
     // the direction of the origin:
     direction = vector_triple_product(ab, ab, simplex[0]);
@@ -107,15 +107,15 @@ bool gjk_intersects(const std::vector<vector_2D<T>> &convex_hull_a, const std::v
         // a is our most recently added point and because we've passed the return condition above 
         // then the origin must be between the lines bc and the line parrallel to bc that passed 
         // through a:
-        const vector_2D<T> &a = simplex[cursor];
-        const vector_2D<T> &b = simplex[(cursor + 1) % 3];
-        const vector_2D<T> &c = simplex[(cursor + 2) % 3];
+        const vector_2d<T> &a = simplex[cursor];
+        const vector_2d<T> &b = simplex[(cursor + 1) % 3];
+        const vector_2d<T> &c = simplex[(cursor + 2) % 3];
 
-        const vector_2D<T> ab = b - a;
-        const vector_2D<T> ca = a - c;
+        const vector_2d<T> ab = b - a;
+        const vector_2d<T> ca = a - c;
         // ab_perpendicular will be perpendicular to ab in the direction that 
         // points away from the inside of the simplex:
-        const vector_2D<T> ab_perpendicular = vector_triple_product(ab, ca, ab);
+        const vector_2d<T> ab_perpendicular = vector_triple_product(ab, ca, ab);
 
         if (ab_perpendicular.dot(a) < 0) {
 
@@ -128,7 +128,7 @@ bool gjk_intersects(const std::vector<vector_2D<T>> &convex_hull_a, const std::v
 
         // ac_perpendicular will be perpendicular to ac in the direction that 
         // points away from the inside of the simplex:
-        const vector_2D<T> ac_perpendicular = vector_triple_product(ca, ca, ab);
+        const vector_2d<T> ac_perpendicular = vector_triple_product(ca, ca, ab);
 
         if (ac_perpendicular.dot(a) < 0) {
 

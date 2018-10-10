@@ -2,6 +2,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <algorithm>
 #include <cmath>
 #include <utility>
@@ -41,15 +42,29 @@ vector_2d<T> vector_triple_product(const vector_2d<T> &vector_a, const vector_2d
 
 }
 
-// checks if the two convex_hulls overlap using the GJK algorithm
-template <typename T>
-bool gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, std::vector<vector_2d<T>> &simplex, vector_2d<T> direction = { 1, 0 }) {
+enum class gjk_result {
+    no_intersection = 0,
+    origin_at_vertex = 1,
+    origin_on_edge = 2,
+    origin_inside = 3
+};
 
-    simplex.resize(3);
+// checks if the two convex_hulls overlap using the GJK algorithm
+// The simplex input doesn't have to contain any particular values (i.e. doesn't have to be all 0's)
+// the return values are:
+// no_intersection = a and b aren't overlapping
+// origin_at_vertex = one of simplex's vertices is the origin => a and b are touching (boundaries overlap, not interiors)
+// origin_on_edge = the origin lies on an edge of simplex, specifically the simplex[0] -> simplex[1] edge
+//                      => a and b are overlapping (possibly just touching if the simplex edge is also an edge 
+//                          for the Minkowski difference, but GJK doesn't specify this)
+// origin_inside = the origin lies within the interior of simplex => a and b are fully overlapping (i.e. not just touching)
+template <typename T>
+gjk_result gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, std::array<vector_2d<T>, 3> &simplex, vector_2d<T> direction = { 1, 0 }) {
+
     simplex[0] = convex_hull_support(convex_hull_a, direction) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * direction);
     if (simplex[0].is_zero()) {
         // is our first point is the origin, then we're all good:
-        return true;
+        return gjk_result::origin_at_vertex;
     }
     // for the next point in our simplex, we move in the 
     // direction first point -> origin in order to maximumise 
@@ -58,12 +73,12 @@ bool gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::v
     simplex[1] = convex_hull_support(convex_hull_a, direction) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * direction);
     if (simplex[1].is_zero()) {
         // is our second point is the origin, then we're all good:
-        return true;
+        return gjk_result::origin_at_vertex;
     }
     // if our second point doesn't move past the origin then there won't be a simplex 
     // that contains the origin, and the shapes don't intersect
     if (direction.dot(simplex[1]) < 0) {
-        return false;
+        return gjk_result::no_intersection;
     }
     const vector_2d<T> ab = simplex[1] - simplex[0];
     // now set the direction to be perpendicular to ab, pointing in 
@@ -71,24 +86,28 @@ bool gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::v
     direction = vector_triple_product(ab, ab, simplex[0]);
     size_t cursor = 2;
 
-    while (true) {
+    int loops = 10;
+    while (--loops) {
 
         if (direction.is_zero()) {
             // if the direction vector here is the zero vector then the origin lays 
             // on the edge of the simplex:
-            return true;
+            if (cursor != 2) {
+                std::swap(simplex[cursor], simplex[2]);
+            }
+            return gjk_result::origin_on_edge;
         }
 
         simplex[cursor] = convex_hull_support(convex_hull_a, direction) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * direction);
 
         if (simplex[cursor].is_zero()) {
-            return true;
+            return gjk_result::origin_at_vertex;
         }
 
         // if newly added point doesn't sit on the other side of the origin then 
         // the origin must be outside, and therefore our shapes don't intersect
         if (direction.dot(simplex[cursor]) < 0) {
-            return false;
+            return gjk_result::no_intersection;
         }
 
         // a is our most recently added point and because we've passed the return condition above 
@@ -129,8 +148,10 @@ bool gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::v
         // ok, so the origin is on the inside of all three lines ab, bc, ac 
         // and therefore must be within the simplex:
 
-        return true;
+        return gjk_result::origin_inside;
 
     }
+
+    throw;
 
 }

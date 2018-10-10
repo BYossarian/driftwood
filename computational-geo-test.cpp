@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <array>
 #include <vector>
 #include <algorithm>
 #include <chrono>
@@ -81,12 +82,19 @@ std::vector<convex_hull_test> convex_hull_tests = {
         { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 0, 0 }, { 1, 0 }, { 0, 1 }, { 0, 0 }, { 1, 0 }, { 0, 1 } },
         // expected result #7
         { { 0, 0 }, { 1, 0 }, { 0, 1 } }
+    },
+    {
+        // convex hull test #8
+        { { 1, 0 }, { 1, 1 }, { 0, 1 }, { 0, 0 }},
+        // expected result #8
+        { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }
     }
 };
 
 struct intersection_test {
     std::vector<vector_2d<double>> shape_a, shape_b;
     bool are_intersecting;
+    vector_2d<double> penetration_vector;
 };
 
 // TODO: add cases where origin is on corner/edges of A-B
@@ -94,84 +102,130 @@ struct intersection_test {
 
 std::vector<intersection_test> intersection_tests = {
     {   
-        { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } }, 
-        { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } }, 
-        true
+        { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }, 
+        { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }, 
+        true,
+        { 1, 0 }  // NB: this test has multiple correct penetration_vectors
     },
     {   
-        { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } }, 
+        { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }, 
+        { { 0.5, -0.9 }, { 1.5, -0.9 }, { 0.5, 0.1 }, { 1.5, 0.1 } }, 
+        true,
+        { 0, -0.1 }
+    },
+    {   
+        { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }, 
         { { 0.5, 0 }, { 1.5, 0 }, { 0.5, 1 }, { 1.5, 1 } }, 
-        true
+        true,
+        { 0.5, 0 }
+    },
+    {   
+        { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }, 
+        { { 0.5, 0.5 }, { 1.5, 0.5 }, { 0.5, 1.5 }, { 1.5, 1.5 } }, 
+        true,
+        { 0.5, 0 }  // NB: this test has multiple correct penetration_vectors
+    },
+    {   
+        { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }, 
+        { { 0, 0 }, { 1, 1 }, { 0, 1 } }, 
+        true,
+        { -0.5 , 0.5 }
+    },
+    {
+        { { 0, 0 }, { 1, 0 }, { 3, 1 }, { 1, 1 }, { 0, 1 } },
+        { { 2, 0 }, { 3, 0 }, { 3, 1 }, { 2, 1 } },
+        true,
+        { 0.2, -0.4 }
     },
     {
         { { 0, 0 }, { 1, 0 }, { 4, 0.5 }, { 1, 1 }, { 0, 1 } },
         { { 2, 0 }, { 3, 0 }, { 3, 1 }, { 2, 1 } },
-        true
+        true,
+        { 5.0 / 37.0, 30.0 / 37.0 }
     },
     {
         { { 0, 0 }, { 1, 0 }, { 10, 1 }, { 0, 1 } },
         { { 2, 0 }, { 3, 0 }, { 12, 1 } },
-        false
+        false,
+        { 0, 0 }
     },
     {
         { { 0, 0 }, { 1, 0 }, { 0, 1 } },
         { { 0, 0 }, { 1, 0 }, { 0, -1 } },
-        true
+        true,
+        { 0, 0 }
     },
     {
         { { 0, 0 }, { 1, 0 }, { 0, 1 } },
         { { 1.1, 0 }, { 2, 0 }, { 2, 1 } },
-        false
+        false,
+        { 0, 0 }
     },
     {
         { { 0, 0 }, { 1, 0 }, { 0, 1 } },
         { { 1, 0 }, { 2, 0 }, { 2, 1 } },
-        true
+        true,
+        { 0, 0 }
     },
     {
         { { 2, 2 }, { 4, 2 }, { 2, 4 } },
-        { { 3, 3 }, { 4, 3 }, { 3, 4 }, { 4, 4 } },
-        true
+        { { 3, 3 }, { 4, 3 }, { 4, 4 }, { 3, 4 } },
+        true,
+        { 0, 0 }
+    },
+    {
+        { { 2, 2 }, { 4, 2 }, { 2, 4 } },
+        { { 2.9, 2.9 }, { 3.9, 2.9 }, { 3.9, 3.9 }, { 2.9, 3.9 } },
+        true,
+        { 0.1, 0.1 }
     },
     {
         { { 2, 2 }, { 4, 2 }, { 2, 4 } },
         { { 3.01, 3 }, { 4, 3 }, { 3, 4 }, { 4, 4 } },
-        false
+        false,
+        { 0, 0 }
     },
     {
         { { -4, -4 }, { -5, -4 }, { -4, -5 }, { -5, -5 } },
         { { -3, -3 }, { -4, -3 }, { -3, -4 }, { -4, -4 } },
-        true
+        true,
+        { 0, 0 }
     },
     {   
         { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } }, 
-        { { 1, 0.5 }, { 2, 0.5 }, { 1, 1.5 }, { 2, 1.5 } }, 
-        true
+        { { 1, 0.5 }, { 2, 0.5 }, { 2, 1.5 }, { 1, 1.5 } }, 
+        true,
+        { 0, 0 }
     },
     {   
         { { 1.21, 1.001 }, { 3.77, 0.9 }, { 3.76, 4.5 }, { 2.42, 4.5 }, { 1.21, 4.3 } }, 
         { { -5.7, -3.42 }, { 0.1, -3 }, { 1.21, 0.999 }, { -2.3, 0.999 } }, 
-        false
+        false,
+        { 0, 0 }
     },
     {   
         { { 1.21, 1.001 }, { 3.77, 0.9 }, { 3.76, 4.5 }, { 2.42, 4.5 }, { 1.21, 4.3 } }, 
         { { -5.7, -3.42 }, { 0.1, -3 }, { 1.23, 0.999 }, { -2.3, 0.999 } }, 
-        false
+        false,
+        { 0, 0 }
     },
     {   
         { { 1.21, 1.001 }, { 3.77, 0.9 }, { 3.76, 4.5 }, { 2.42, 4.5 }, { 1.21, 4.3 } }, 
         { { -5.7, -3.42 }, { 0.1, -3 }, { 1.21, 1.001 }, { -2.3, 0.999 } }, 
-        true
+        true,
+        { 0, 0 }
     },
     {   
         { { 1.21, 1.001 }, { 3.77, 0.9 }, { 3.76, 4.5 }, { 2.42, 4.5 }, { 1.21, 4.3 } }, 
         { { -5.7, -3.42 }, { 0.1, -3 }, { 1.22, 1 }, { 1.2, 1.002 }, { -2.3, 0.999 } }, 
-        true
+        true,
+        { 0, 0 }
     },
     {   
         { { 1.21, 1.001 }, { 3.77, 0.9 }, { 3.76, 4.5 }, { 2.42, 4.5 }, { 1.21, 4.3 } }, 
         { { -5.7, -3.42 }, { 0.1, -3 }, { 1.22, 1 }, { 1.2, 1.0019 }, { -2.3, 0.999 } }, 
-        false
+        false,
+        { 0, 0 }
     }
 };
 
@@ -192,6 +246,16 @@ bool are_equal_point_lists(const std::vector<vector_2d<T>> &points_a, const std:
 
 }
 
+template <typename T>
+bool almost_equal(const vector_2d<T> &vector_a, const vector_2d<T> &vector_b) {
+
+    T x_diff = vector_a.x == 0 ? vector_b.x : (vector_b.x - vector_a.x) / vector_a.x;
+    T y_diff = vector_a.y == 0 ? vector_b.y : (vector_b.y - vector_a.y) / vector_a.y;
+
+    return std::abs(x_diff) < 0.0001 && std::abs(y_diff) < 0.0001;
+
+}
+
 // TODO:
 // 1) think about degenerate/edge/corner cases
 // 2) organise api a bit better; put in namespace
@@ -199,9 +263,7 @@ bool are_equal_point_lists(const std::vector<vector_2d<T>> &points_a, const std:
 // 4) speed up EPA and convex hull ops
 // 5) add v-clip
 // 6) add/think about escapes for while(true) loops
-// 7) unit tests for epa
-// 8) issue: if GJK exits early, then simplex won't be right for epa
-// 9) will GJK be faster if we maintain the ccw winding of simplex?
+// 7) will GJK be faster if we maintain the ccw winding of simplex?
 
 int main() {
 
@@ -218,6 +280,9 @@ int main() {
         std::cout << i << " ";
         if (!are_equal_point_lists(points, convex_hull_tests[i].expected_result)) {
             std::cout << "FAILED\n";
+            print_points(convex_hull_tests[i].input_points);
+            print_points(points);
+            print_points(convex_hull_tests[i].expected_result);
             throw;
         }
     }
@@ -237,13 +302,13 @@ int main() {
     std::cout << "PASSED\n";
 
     {
-        std::vector<vector_2d<double>> simplex(3);
+        std::array<vector_2d<double>, 3> simplex;
         std::cout << "GJK:\n    ";
         for (int i = 0, l = intersection_tests.size(); i < l; i++) {
             std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
             std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
             std::cout << i << " ";
-            if (gjk_intersects(shape_a, shape_b, simplex) != intersection_tests[i].are_intersecting) {
+            if (intersection_tests[i].are_intersecting != (gjk_intersects(shape_a, shape_b, simplex) != gjk_result::no_intersection)) {
                 std::cout << "FAILED\n";
                 throw;
             }
@@ -251,38 +316,35 @@ int main() {
         std::cout << "PASSED\n";
     }
 
-    // {
-    //     std::vector<vector_2d<double>> simplex(3);
-    //     std::cout << "GJK + EPA:\n    ";
-    //     for (int i = 0, l = intersection_tests.size(); i < l; i++) {
-    //         std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
-    //         std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
-    //         if (!gjk_intersects(shape_a, shape_b, simplex)) {
-    //             continue;
-    //         }
-    //         std::cout << " --- " << i << " ";
-    //         print_points(simplex);
-    //         print_point(epa_get_penetration_vector(shape_a, shape_b, simplex));
-    //         std::cout << "\n    ";
-    //     }
-    //     std::cout << "PASSED\n";
-    // }
+    {
+        std::array<vector_2d<double>, 3> simplex;
+        std::cout << "GJK + EPA:\n    ";
+        for (int i = 0, l = intersection_tests.size(); i < l; i++) {
+            std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
+            std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
+            std::cout << i << " ";
+            gjk_result result = gjk_intersects(shape_a, shape_b, simplex);
+            if (!almost_equal(intersection_tests[i].penetration_vector, epa_get_penetration_vector(shape_a, shape_b, simplex, result))) {
+                std::cout << "FAILED\n";
+                throw;
+            }
+        }
+        std::cout << "PASSED\n";
+    }
 
     std::cout << "\nALL GOOD... :)\n\n";
 
-    return 0;
 
     timer<std::chrono::microseconds> test_timer{};
 
-    // TODO: after the first loop, convex_hull_tests[i].input_points will all
-    // be convex hulls anyway
-    for (int j = 0; j < 1000; j++) {
-        for (int i = 0, l = convex_hull_tests.size(); i < l; i ++) {
-            make_convex_hull(convex_hull_tests[i].input_points);
-        }
+    // NB: can only run through convex_hull_tests once, because 
+    // make_convex_hull mutates it's input:
+    for (int i = 0, l = convex_hull_tests.size(); i < l; i ++) {
+        make_convex_hull(convex_hull_tests[i].input_points);
     }
+    std::cout << "convex hull time: " << test_timer.get_ticks() / 1000.0 << " ms (" 
+                << static_cast<double>(test_timer.get_ticks()) / convex_hull_tests.size() << " ms/1k ops)\n";
 
-    std::cout << "convex hull time: " << test_timer.get_ticks() / 1000.0 << " ms\n";
     test_timer.reset();
 
     for (int j = 0; j < 1000; j++) {
@@ -292,12 +354,13 @@ int main() {
             sat_intersects(shape_a, shape_b);
         }
     }
+    std::cout << "sat time: " << test_timer.get_ticks() / 1000.0 << " ms (" 
+                << test_timer.get_ticks() / (1000.0 * intersection_tests.size()) << " ms/1k ops)\n";
 
-    std::cout << "sat time: " << test_timer.get_ticks() / 1000.0 << " ms\n";
     test_timer.reset();
 
     {
-        std::vector<vector_2d<double>> simplex(3);
+        std::array<vector_2d<double>, 3> simplex;
         for (int j = 0; j < 1000; j++) {
             for (int i = 0, l = intersection_tests.size(); i < l; i++) {
                 std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
@@ -305,25 +368,27 @@ int main() {
                 gjk_intersects(shape_a, shape_b, simplex);
             }
         }
+        std::cout << "gjk time: " << test_timer.get_ticks() / 1000.0 << " ms (" 
+                    << test_timer.get_ticks() / (1000.0 * intersection_tests.size()) << " ms/1k ops)\n";
     }
 
-    std::cout << "gjk time: " << test_timer.get_ticks() / 1000.0 << " ms\n";
-    // test_timer.reset();
+    test_timer.reset();
 
-    // {
-    //     std::vector<vector_2d<double>> simplex(3);
-    //     for (int j = 0; j < 1000; j++) {
-    //         for (int i = 0, l = intersection_tests.size(); i < l; i++) {
-    //             std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
-    //             std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
-    //             if (gjk_intersects(shape_a, shape_b, simplex)) {
-    //                 epa_get_penetration_vector(shape_a, shape_b, simplex);
-    //             }
-    //         }
-    //     }
-    // }
-
-
-    // std::cout << "gjk + epa time: " << test_timer.get_ticks() / 1000.0 << " ms\n";
+    {
+        std::array<vector_2d<double>, 3> simplex;
+        for (int j = 0; j < 1000; j++) {
+            for (int i = 0, l = intersection_tests.size(); i < l; i++) {
+                std::vector<vector_2d<double>> &shape_a = intersection_tests[i].shape_a;
+                std::vector<vector_2d<double>> &shape_b = intersection_tests[i].shape_b;
+                gjk_result result = gjk_intersects(shape_a, shape_b, simplex);
+                if (result == gjk_result::no_intersection || result == gjk_result::origin_at_vertex) {
+                    continue;
+                }
+                epa_get_penetration_vector(shape_a, shape_b, simplex, result);
+            }
+        }
+        std::cout << "gjk + epa time: " << test_timer.get_ticks() / 1000.0 << " ms (" 
+                    << test_timer.get_ticks() / (1000.0 * intersection_tests.size()) << " ms/1k ops)\n";
+    }
 
 }

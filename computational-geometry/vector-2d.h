@@ -61,3 +61,16 @@ void print_points(const std::vector<vector_2d<T>> &points) {
     std::cout << "\n";
 
 }
+
+template <typename T, std::size_t N>
+void print_points(const std::array<vector_2d<T>, N> &points) {
+
+    for (size_t i = 0; i < N; i++) {
+
+        std::cout << "(" << points[i].x << ", " << points[i].y << ") ";
+
+    }
+
+    std::cout << "\n";
+
+}

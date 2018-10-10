@@ -2,11 +2,13 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <algorithm>
 #include <cmath>
 #include <utility>
 #include <functional>
 
+#include "./gjk.h"
 #include "./vector-2d.h"
 
 // calculates the shortest distance from ab to the origin
@@ -21,65 +23,95 @@ T calc_edge_to_origin_distance(const vector_2d<T> &point_a, const vector_2d<T> &
 
 }
 
-// calculates the penetration vector for intersecting shapes using the Expanding Polytope Algorithm:
-// polytope should be a 2-simplex whose points lay on the boundary of convex_hull_a - convex_hull_b
+// an edge for the expanding polytope using in the EPA algorithm:
 template <typename T>
-vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, std::vector<vector_2d<T>> polytope) {
+struct epa_edge {
+    vector_2d<T> start, end;
+    T dist_to_origin;
+};
 
-    if (polytope.size() != 3) {
-        throw;
+template <typename T>
+void print_edges(const std::vector<epa_edge<T>> &edges) {
+    
+    for (size_t i = 1, l = edges.size(); i < l; i++) {
+
+        print_point(edges[i].start);
+        std::cout << "-> ";
+        print_point(edges[i].end);
+        std::cout << ": " << edges[i].dist_to_origin << "\n";
+
     }
 
-    // check for zero vectors in polytope
-    for (size_t i = 0; i < 3; i++) {
-        // if the origin is in the polytope, then the origin 
-        // is on the boundary of the Minkowski difference, so 
-        // the shapes are just touching...
-        if (polytope[i].is_zero()) {
+}
+
+// calculates the penetration vector for intersecting shapes using the Expanding Polytope Algorithm:
+// simplex and result should be straight from the GJK implementation.
+template <typename T>
+vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, std::array<vector_2d<T>, 3> simplex, gjk_result result) {
+
+    if (result == gjk_result::no_intersection || result == gjk_result::origin_at_vertex) {
+        return { 0, 0 };
+    } else if (result == gjk_result::origin_on_edge) {
+
+        const vector_2d<T> &point_a = simplex[0];
+        const vector_2d<T> &point_b = simplex[1];
+        // this orthogonal points ccw when going from a to b, such that the newly added 
+        // point will ensure that simplex has ccw winding:
+        vector_2d<T> orthogonal = { point_a.y - point_b.y, point_b.x - point_a.x };
+        simplex[2] = convex_hull_support(convex_hull_a, orthogonal) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * orthogonal);
+
+        if (calc_edge_to_origin_distance(point_b, simplex[2]) == 0) {
             return { 0, 0 };
         }
+
+    } else {
+
+        T alignment = calc_alignment(simplex[0], simplex[1], simplex[2]);
+
+        if (alignment == 0) {
+            // co-linear...
+            throw;
+        }
+
+        // if winding of simplex is clockwise, then swap elements to 
+        // ensure counter-clockwise winding:
+        if (alignment < 0) {
+            std::swap(simplex[1], simplex[2]);
+        }
+
     }
 
-    T alignment = calc_alignment(polytope[0], polytope[1], polytope[2]);
+    // ok, so at this point, simplex should be three vertices, all on the boundary 
+    // of the Minkowski difference of a and b; in ccw winding order
 
-    if (alignment == 0) {
-        // co-linear...
-        throw;
-    }
+    // the edges of our expanding polytope:
+    std::vector<epa_edge<T>> edges;
+    edges.reserve(8);
 
-    // if winding of polytope is clockwise, then swap elements to 
-    // ensure counter-clockwise winding:
-    if (alignment < 0) {
-        std::swap(polytope[1], polytope[2]);
-    }
-
-    // so we're going to maintain the ccw winding in polytope as 
-    // we add elements to it. We'll define edge_to_origin_dist such 
-    // that the edge polytope[i] -> polytope[i + 1] will have a 
-    // (shortest) distance to the origin of edge_to_origin_dist[i]:
-    std::vector<T> edge_to_origin_dist(3);
-
-    // calc edge_to_origin_dist for starting polytope:
+    // calc edges for starting simplex:
     for (size_t i = 0; i < 3; i++) {
 
-        // because we know that the winding of polytope is 
-        // ccw, this will return the +ve distance:
-        edge_to_origin_dist[i] = calc_edge_to_origin_distance(polytope[i], polytope[(i + 1) % 3]);
+        edges.push_back({
+            simplex[i],
+            simplex[(i + 1) % 3],
+            // because we know that the winding of simplex is 
+            // ccw, this will return the +ve distance:
+            calc_edge_to_origin_distance(simplex[i], simplex[(i + 1) % 3])
+        });
 
     }
 
     int loops = 10;
-
     while (--loops) {
 
         // find smallest edge_to_origin_dist
-        T smallest_dist = edge_to_origin_dist[0];
+        T smallest_dist = edges[0].dist_to_origin;
         size_t smallest_dist_index = 0;
 
-        for (size_t i = 1, l = edge_to_origin_dist.size(); i < l; i++) {
+        for (size_t i = 1, l = edges.size(); i < l; i++) {
 
-            if (edge_to_origin_dist[i] < smallest_dist) {
-                smallest_dist = edge_to_origin_dist[i];
+            if (edges[i].dist_to_origin < smallest_dist) {
+                smallest_dist = edges[i].dist_to_origin;
                 smallest_dist_index = i;
             }
 
@@ -87,34 +119,27 @@ vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_
 
         // expand the polytope by removing the edge closest to the origin 
         // and adding in a point:
-        vector_2d<T> &point_a = polytope[smallest_dist_index];
-        vector_2d<T> &point_b = polytope[(smallest_dist_index + 1) % polytope.size()];
+        const vector_2d<T> &point_a = edges[smallest_dist_index].start;
+        const vector_2d<T> &point_b = edges[smallest_dist_index].end;
         vector_2d<T> orthogonal = { point_b.y - point_a.y, point_a.x - point_b.x };
         vector_2d<T> new_point = convex_hull_support(convex_hull_a, orthogonal) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * orthogonal);
 
-        // TODO: if insertion_index == 0 then we can actually, push the new elements to the end 
-        // rather than inserting at the beginning...
-        size_t insertion_index = (smallest_dist_index + 1) % polytope.size();
-
-        if (polytope[insertion_index] == new_point) {
+        if (new_point == point_a || new_point == point_b) {
             // new_point already exists in polytope => haven't expanded polytope 
             orthogonal.normalise();
             return smallest_dist * orthogonal;
         }
 
-        polytope.insert(polytope.begin() + insertion_index, new_point);
-        edge_to_origin_dist.insert(edge_to_origin_dist.begin() + insertion_index, 
-                calc_edge_to_origin_distance(polytope[insertion_index], polytope[(insertion_index + 1) % polytope.size()]));
-        size_t precedes_insertion_index = (insertion_index == 0) ? polytope.size() - 1 : insertion_index - 1;
-        if (polytope[precedes_insertion_index] == new_point) {
-            // new_point already exists in polytope => haven't expanded polytope 
-            orthogonal.normalise();
-            return smallest_dist * orthogonal;
-        }
-        edge_to_origin_dist[precedes_insertion_index] = 
-                calc_edge_to_origin_distance(polytope[precedes_insertion_index], polytope[insertion_index]);
+        edges.push_back({
+            new_point,
+            point_b,
+            calc_edge_to_origin_distance(new_point, point_b)
+        });
 
-        if (edge_to_origin_dist[insertion_index] <= smallest_dist && edge_to_origin_dist[precedes_insertion_index] <= smallest_dist) {
+        edges[smallest_dist_index].end = new_point;
+        edges[smallest_dist_index].dist_to_origin = calc_edge_to_origin_distance(point_a, new_point);
+
+        if (edges[smallest_dist_index].dist_to_origin <= smallest_dist && edges.back().dist_to_origin <= smallest_dist) {
             // haven't actually extended the polytope => have hit the edge
             orthogonal.normalise();
             return smallest_dist * orthogonal;

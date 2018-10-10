@@ -35,7 +35,6 @@ void make_convex_hull(std::vector<vector_2d<T>> &points) {
 
     // 1) swap points[0] with the point with the smallest y
     // (in case of multiple such points, use one with smallest x)
-
     {
 
         size_t index_of_lowest = 0;

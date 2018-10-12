@@ -15,7 +15,7 @@
 //      formed from p1-p2-p3 is more than 180 deg).
 // NB: it's just calculating the 2D cross-product (p2 - p1) X (p3 - p1):
 template <typename T>
-T calc_alignment(const vector_2d<T> &p1, const vector_2d<T> &p2, const vector_2d<T> &p3) {
+inline T calc_alignment(const vector_2d<T> &p1, const vector_2d<T> &p2, const vector_2d<T> &p3) {
 
     return (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
 

@@ -91,7 +91,7 @@ gjk_result gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const 
 
         if (direction.is_zero()) {
             // if the direction vector here is the zero vector then the origin lays 
-            // on the edge of the simplex:
+            // on the edge of the simplex (the edge that doesn't include the cursor point):
             if (cursor != 2) {
                 std::swap(simplex[cursor], simplex[2]);
             }
@@ -110,6 +110,16 @@ gjk_result gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const 
             return gjk_result::no_intersection;
         }
 
+        T alignment = calc_alignment(simplex[0], simplex[1], simplex[2]);
+
+        // REVIEW: think about alignment == 0 case
+
+        // if winding of simplex is clockwise, then swap elements to 
+        // ensure counter-clockwise winding:
+        if (alignment < 0) {
+            std::swap(simplex[(cursor + 1) % 3], simplex[(cursor + 2) % 3]);
+        }
+
         // a is our most recently added point and because we've passed the return condition above 
         // then the origin must be between the lines bc and the line parrallel to bc that passed 
         // through a:
@@ -117,11 +127,10 @@ gjk_result gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const 
         const vector_2d<T> &b = simplex[(cursor + 1) % 3];
         const vector_2d<T> &c = simplex[(cursor + 2) % 3];
 
-        const vector_2d<T> ab = b - a;
-        const vector_2d<T> ca = a - c;
         // ab_perpendicular will be perpendicular to ab in the direction that 
         // points away from the inside of the simplex:
-        const vector_2d<T> ab_perpendicular = vector_triple_product(ab, ca, ab);
+        // (direction is guaranteed by the ccw simplex winding)
+        const vector_2d<T> ab_perpendicular = { b.y - a.y, a.x - b.x };
 
         if (ab_perpendicular.dot(a) < 0) {
 
@@ -134,7 +143,8 @@ gjk_result gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const 
 
         // ac_perpendicular will be perpendicular to ac in the direction that 
         // points away from the inside of the simplex:
-        const vector_2d<T> ac_perpendicular = vector_triple_product(ca, ca, ab);
+        // (direction is guaranteed by the ccw simplex winding)
+        const vector_2d<T> ac_perpendicular = { a.y - c.y, c.x - a.x };
 
         if (ac_perpendicular.dot(a) < 0) {
 

@@ -58,7 +58,7 @@ enum class gjk_result {
 //                      => a and b are overlapping (possibly just touching if the simplex edge is also an edge 
 //                          for the Minkowski difference, but GJK doesn't specify this)
 // origin_inside = the origin lies within the interior of simplex => a and b are fully overlapping (i.e. not just touching)
-template <typename T>
+template <typename T, size_t N = 10>
 gjk_result gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, std::array<vector_2d<T>, 3> &simplex, vector_2d<T> direction = { 1, 0 }) {
 
     simplex[0] = convex_hull_support(convex_hull_a, direction) - convex_hull_support(convex_hull_b, static_cast<T>(-1) * direction);
@@ -86,7 +86,7 @@ gjk_result gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const 
     direction = vector_triple_product(ab, ab, simplex[0]);
     size_t cursor = 2;
 
-    int loops = 10;
+    int loops = N;
     while (--loops) {
 
         if (direction.is_zero()) {
@@ -162,6 +162,8 @@ gjk_result gjk_intersects(const std::vector<vector_2d<T>> &convex_hull_a, const 
 
     }
 
-    throw;
+    // unable to find intersection promptly, so assume it doesn't 
+    // exist:
+    return gjk_result::no_intersection;
 
 }

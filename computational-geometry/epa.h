@@ -46,8 +46,8 @@ void print_edges(const std::vector<epa_edge<T>> &edges) {
 
 // calculates the penetration vector for intersecting shapes using the Expanding Polytope Algorithm:
 // simplex and result should be straight from the GJK implementation.
-template <typename T>
-vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, std::array<vector_2d<T>, 3> simplex, gjk_result result) {
+template <typename T, size_t N = 10>
+vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_hull_a, const std::vector<vector_2d<T>> &convex_hull_b, std::array<vector_2d<T>, 3> simplex, const gjk_result result) {
 
     if (result == gjk_result::no_intersection || result == gjk_result::origin_at_vertex) {
         return { 0, 0 };
@@ -68,10 +68,7 @@ vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_
 
         T alignment = calc_alignment(simplex[0], simplex[1], simplex[2]);
 
-        if (alignment == 0) {
-            // co-linear...
-            throw;
-        }
+        // REVIEW: think about alignment == 0 case
 
         // if winding of simplex is clockwise, then swap elements to 
         // ensure counter-clockwise winding:
@@ -101,7 +98,7 @@ vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_
 
     }
 
-    int loops = 10;
+    int loops = N;
     while (--loops) {
 
         // find smallest edge_to_origin_dist
@@ -146,6 +143,10 @@ vector_2d<T> epa_get_penetration_vector(const std::vector<vector_2d<T>> &convex_
         }
     }
 
+    // TODO: think about case where penetration vector can't be quickly found
+    // this is probably a curved object and we're iteratively getting closer 
+    // to the right answer but without approaching it... therefore return 
+    // something like smallest_dist * normalised_orthogonal ??
     throw;
 
 }
